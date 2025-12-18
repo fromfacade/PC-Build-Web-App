@@ -1,5 +1,4 @@
-import React from 'react';
-import '../App.css'; // Or use a module
+import Login from './Auth/Login';
 
 const Header = () => {
     return (
@@ -21,7 +20,7 @@ const Header = () => {
                     <span style={styles.brand}>PC Builder</span>
                 </div>
                 <nav>
-                    {/* Add links later */}
+                    <Login />
                 </nav>
             </div>
         </header>

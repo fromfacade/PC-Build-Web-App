@@ -1,8 +1,8 @@
 import React from 'react';
 
-const PartSlot = ({ type, label, part, onAdd, onRemove }) => {
+const PartSlot = ({ type, label, part, onAdd, onRemove, error, isPurchased, onTogglePurchased }) => {
     return (
-        <div style={styles.slot}>
+        <div style={{ ...styles.slot, ...(error ? styles.slotError : {}) }}>
             <div style={styles.header}>
                 <h3 style={styles.label}>{label}</h3>
                 {!part && (
@@ -21,6 +21,14 @@ const PartSlot = ({ type, label, part, onAdd, onRemove }) => {
                         <div>
                             <div style={styles.partName}>{part.name}</div>
                             <div style={styles.partPrice}>${part.price}</div>
+                            <label style={styles.purchasedLabel}>
+                                <input
+                                    type="checkbox"
+                                    checked={isPurchased}
+                                    onChange={() => onTogglePurchased(type)}
+                                />
+                                Purchased
+                            </label>
                         </div>
                     </div>
                     <button style={styles.removeButton} onClick={() => onRemove(type)}>
@@ -28,6 +36,7 @@ const PartSlot = ({ type, label, part, onAdd, onRemove }) => {
                     </button>
                 </div>
             )}
+            {error && <div style={styles.errorMsg}>{error}</div>}
         </div>
     );
 };
@@ -39,6 +48,11 @@ const styles = {
         borderRadius: 'var(--radius-md)',
         padding: '1.5rem',
         marginBottom: '1rem',
+        transition: 'border-color 0.3s',
+    },
+    slotError: {
+        borderColor: '#ff4d4d',
+        boxShadow: '0 0 10px rgba(255, 77, 77, 0.2)',
     },
     header: {
         display: 'flex',
@@ -96,6 +110,21 @@ const styles = {
         color: 'var(--color-text-muted)',
         fontSize: '1.5rem',
         padding: '0 0.5rem',
+    },
+    errorMsg: {
+        color: '#ff4d4d',
+        fontSize: '0.875rem',
+        marginTop: '0.5rem',
+        fontWeight: '600',
+    },
+    purchasedLabel: {
+        fontSize: '0.8rem',
+        color: 'var(--color-text-muted)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        marginTop: '4px',
+        cursor: 'pointer',
     }
 };
 

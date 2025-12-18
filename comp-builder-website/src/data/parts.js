@@ -6,10 +6,10 @@ export const PARTS_DATA = {
     { id: 'c4', name: 'AMD Ryzen 7 7800X3D', price: 449, brand: 'AMD', socket: 'AM5', image: 'https://placehold.co/100x100?text=R7' },
   ],
   motherboard: [
-    { id: 'm1', name: 'ASUS ROG Maximus Z790', price: 699, brand: 'ASUS', socket: 'LGA1700', formFactor: 'ATX', image: 'https://placehold.co/100x100?text=Z790' },
-    { id: 'm2', name: 'MSI MPG Z790 Carbon', price: 479, brand: 'MSI', socket: 'LGA1700', formFactor: 'ATX', image: 'https://placehold.co/100x100?text=MSI' },
-    { id: 'm3', name: 'Gigabyte X670E AORUS', price: 499, brand: 'Gigabyte', socket: 'AM5', formFactor: 'ATX', image: 'https://placehold.co/100x100?text=X670' },
-    { id: 'm4', name: 'ASUS ROG Strix B650-I', price: 329, brand: 'ASUS', socket: 'AM5', formFactor: 'Mini-ITX', image: 'https://placehold.co/100x100?text=ITX' },
+    { id: 'm1', name: 'ASUS ROG Maximus Z790', price: 699, brand: 'ASUS', socket: 'LGA1700', formFactor: 'ATX', memoryType: 'DDR5', image: 'https://placehold.co/100x100?text=Z790' },
+    { id: 'm2', name: 'MSI MPG Z790 Carbon', price: 479, brand: 'MSI', socket: 'LGA1700', formFactor: 'ATX', memoryType: 'DDR5', image: 'https://placehold.co/100x100?text=MSI' },
+    { id: 'm3', name: 'Gigabyte X670E AORUS', price: 499, brand: 'Gigabyte', socket: 'AM5', formFactor: 'ATX', memoryType: 'DDR5', image: 'https://placehold.co/100x100?text=X670' },
+    { id: 'm4', name: 'ASUS ROG Strix B650-I', price: 329, brand: 'ASUS', socket: 'AM5', formFactor: 'Mini-ITX', memoryType: 'DDR5', image: 'https://placehold.co/100x100?text=ITX' },
   ],
   cpuCooler: [
     { id: 'cool1', name: 'Corsair H150i Elite', price: 189, supportedSockets: ['LGA1700', 'AM5'], image: 'https://placehold.co/100x100?text=AIO' },
