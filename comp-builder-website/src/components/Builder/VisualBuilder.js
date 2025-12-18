@@ -1,98 +1,166 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CATEGORIES } from '../../data/parts';
+import PeripheralSidebar from './PeripheralSidebar';
 
 const VisualBuilder = ({ build, onPartSelect, errors = {} }) => {
-    // Define positions for a spider-web layout
-    const positions = {
-        center: { x: 50, y: 50 },
-        cpu: { x: 50, y: 20 },
-        motherboard: { x: 50, y: 35 },
-        cpuCooler: { x: 25, y: 20 },
-        ram: { x: 75, y: 20 },
-        gpu: { x: 50, y: 70 },
-        storage: { x: 80, y: 50 },
-        psu: { x: 20, y: 50 },
-        case: { x: 50, y: 85 },
-        monitor: { x: 85, y: 80 },
-        keyboard: { x: 15, y: 80 },
-        mouse: { x: 15, y: 70 },
+    const [layoutMode, setLayoutMode] = useState('decision'); // 'decision' | 'physical'
+
+    const coreParts = ['cpu', 'motherboard', 'ram', 'gpu', 'storage', 'psu', 'case', 'cpuCooler'];
+
+    const getLayout = (mode) => {
+        if (mode === 'physical') {
+            // Previous Motherboard-centric layout
+            return {
+                positions: {
+                    pc: { x: 50, y: 50 },
+                    cpu: { x: 50, y: 30 },
+                    motherboard: { x: 50, y: 50 }, // Center hub
+                    cpuCooler: { x: 30, y: 30 },
+                    ram: { x: 70, y: 30 },
+                    gpu: { x: 50, y: 80 },
+                    storage: { x: 80, y: 50 },
+                    psu: { x: 20, y: 50 },
+                    case: { x: 50, y: 90 },
+                },
+                connections: [
+                    { from: 'pc', to: 'motherboard', type: 'solid' },
+                    { from: 'motherboard', to: 'cpu', type: 'solid' },
+                    { from: 'motherboard', to: 'ram', type: 'solid' },
+                    { from: 'motherboard', to: 'gpu', type: 'solid' },
+                    { from: 'motherboard', to: 'storage', type: 'solid' },
+                    { from: 'motherboard', to: 'cpuCooler', type: 'dotted' },
+                    { from: 'pc', to: 'psu', type: 'solid' },
+                    { from: 'pc', to: 'case', type: 'solid' },
+                ]
+            };
+        } else {
+            // Decision Flow (CPU Centered)
+            return {
+                positions: {
+                    cpu: { x: 50, y: 15 }, // Start here
+                    motherboard: { x: 50, y: 35 }, // Main Gate
+                    ram: { x: 30, y: 55 },
+                    gpu: { x: 50, y: 60 },
+                    storage: { x: 70, y: 55 },
+                    cpuCooler: { x: 80, y: 15 }, // Linked to CPU
+                    case: { x: 50, y: 85 }, // Linked to Mobo/GPU
+                    psu: { x: 20, y: 85 },
+                },
+                connections: [
+                    { from: 'cpu', to: 'motherboard', type: 'solid' },
+                    { from: 'motherboard', to: 'ram', type: 'solid' },
+                    { from: 'motherboard', to: 'gpu', type: 'solid' },
+                    { from: 'motherboard', to: 'storage', type: 'solid' },
+                    // Secondary / Constraints
+                    { from: 'cpu', to: 'cpuCooler', type: 'dotted' },
+                    { from: 'motherboard', to: 'case', type: 'solid' },
+                    { from: 'gpu', to: 'psu', type: 'dotted' },
+                ]
+            };
+        }
     };
 
-    const connections = [
-        { from: 'center', to: 'motherboard' },
-        { from: 'motherboard', to: 'cpu' },
-        { from: 'motherboard', to: 'ram' },
-        { from: 'motherboard', to: 'gpu' },
-        { from: 'motherboard', to: 'storage' },
-        { from: 'motherboard', to: 'cpuCooler' }, // Usually connects to CPU area
-        { from: 'center', to: 'psu' },
-        { from: 'center', to: 'case' },
-        { from: 'center', to: 'monitor' },
-        { from: 'center', to: 'keyboard' },
-        { from: 'center', to: 'mouse' },
-    ];
+    const { positions, connections } = getLayout(layoutMode);
 
     return (
-        <div style={styles.container}>
-            <svg style={styles.svg}>
-                {connections.map((conn, i) => {
-                    const start = positions[conn.from];
-                    const end = positions[conn.to];
-                    return (
-                        <line
-                            key={i}
-                            x1={`${start.x}%`} y1={`${start.y}%`}
-                            x2={`${end.x}%`} y2={`${end.y}%`}
-                            stroke="var(--color-border)"
-                            strokeWidth="2"
-                        />
-                    );
-                })}
-            </svg>
-
-            <div style={{ ...styles.node, ...styles.centerNode, left: '50%', top: '50%' }}>
-                <div style={styles.nodeIcon}>💻</div>
-                <span style={styles.nodeLabel}>PC</span>
+        <div style={styles.wrapper}>
+            <div style={styles.controls}>
+                <label style={styles.toggleLabel}>
+                    <span style={{ marginRight: '8px', color: 'var(--color-text-muted)' }}>Layout:</span>
+                    <select
+                        value={layoutMode}
+                        onChange={(e) => setLayoutMode(e.target.value)}
+                        style={styles.select}
+                    >
+                        <option value="decision">Decision Flow (CPU)</option>
+                        <option value="physical">Physical Hub</option>
+                    </select>
+                </label>
             </div>
 
-            {Object.entries(CATEGORIES).map(([key, label]) => {
-                const pos = positions[key] || { x: 0, y: 0 };
-                const part = build[key];
-                const hasError = !!errors[key];
+            <div style={styles.graphArea}>
+                <svg style={styles.svg}>
+                    {connections.map((conn, i) => {
+                        const start = positions[conn.from];
+                        const end = positions[conn.to];
+                        if (!start || !end) return null;
 
-                return (
-                    <div
-                        key={key}
-                        style={{ ...styles.node, left: `${pos.x}%`, top: `${pos.y}%` }}
-                        onClick={() => onPartSelect(key)}
-                    >
-                        <div style={{
-                            ...styles.nodeIcon,
-                            ...(part ? styles.nodeActive : {}),
-                            ...(hasError ? styles.nodeError : {})
-                        }}>
-                            {part ? <img src={part.image} alt={part.name} style={styles.partImage} /> : '+'}
+                        return (
+                            <line
+                                key={i}
+                                x1={`${start.x}%`} y1={`${start.y}%`}
+                                x2={`${end.x}%`} y2={`${end.y}%`}
+                                stroke="var(--color-border)"
+                                strokeWidth="2"
+                                strokeDasharray={conn.type === 'dotted' ? '5,5' : 'none'}
+                                opacity={conn.type === 'dotted' ? 0.6 : 1}
+                            />
+                        );
+                    })}
+                </svg>
+
+                {coreParts.map(key => {
+                    const pos = positions[key];
+                    if (!pos) return null; // Skip if not in current layout
+
+                    const part = build[key];
+                    const hasError = !!errors[key];
+
+                    return (
+                        <div
+                            key={key}
+                            style={{ ...styles.node, left: `${pos.x}%`, top: `${pos.y}%` }}
+                            onClick={() => onPartSelect(key)}
+                        >
+                            <div style={{
+                                ...styles.nodeIcon,
+                                ...(part ? styles.nodeActive : {}),
+                                ...(hasError ? styles.nodeError : {})
+                            }}>
+                                {part ? <img src={part.image} alt={part.name} style={styles.partImage} /> : '+'}
+                            </div>
+                            <span style={styles.nodeLabel}>
+                                {part ? (part.name.length > 12 ? part.name.substring(0, 12) + '...' : part.name) : CATEGORIES[key]}
+                            </span>
                         </div>
-                        <span style={styles.nodeLabel}>
-                            {part ? part.name.substring(0, 15) + (part.name.length > 15 ? '...' : '') : label}
-                        </span>
-                    </div>
-                );
-            })}
+                    );
+                })}
+            </div>
+
+            <PeripheralSidebar build={build} onPartSelect={onPartSelect} />
         </div>
     );
 };
 
 const styles = {
-    container: {
-        position: 'relative',
-        width: '100%',
-        height: '600px',
+    wrapper: {
+        display: 'flex',
         backgroundColor: 'var(--color-bg-card)',
         borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
         border: '1px solid var(--color-border)',
         marginBottom: '2rem',
+        overflow: 'hidden',
+        height: '600px',
+        position: 'relative',
+    },
+    graphArea: {
+        flex: 1,
+        position: 'relative',
+        backgroundColor: 'rgba(0,0,0,0.2)', // Slightly darker graph area
+    },
+    controls: {
+        position: 'absolute',
+        top: '1rem',
+        left: '1rem',
+        zIndex: 20,
+    },
+    select: {
+        padding: '4px 8px',
+        borderRadius: 'var(--radius-sm)',
+        background: 'var(--color-bg-dark)',
+        color: '#fff',
+        border: '1px solid var(--color-border)',
+        fontSize: '0.875rem',
     },
     svg: {
         position: 'absolute',
@@ -116,23 +184,21 @@ const styles = {
         width: '50px',
         height: '50px',
         backgroundColor: 'var(--color-bg-dark)',
-        borderRadius: '50%',
+        borderRadius: '12px', // Squircle
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
         border: '2px solid var(--color-border)',
-        transition: 'all 0.3s ease',
+        transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)', // Bouncy
         fontSize: '1.2rem',
         color: 'var(--color-text-muted)',
-    },
-    centerNode: {
-        cursor: 'default',
     },
     nodeActive: {
         borderColor: 'var(--color-primary)',
         backgroundColor: '#fff',
         overflow: 'hidden',
         padding: 0,
+        boxShadow: '0 4px 15px rgba(0, 210, 255, 0.2)',
     },
     nodeError: {
         borderColor: '#ff4d4d',
@@ -146,11 +212,12 @@ const styles = {
     nodeLabel: {
         fontSize: '0.75rem',
         color: 'var(--color-text-muted)',
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
         padding: '2px 6px',
         borderRadius: '4px',
         maxWidth: '120px',
         textAlign: 'center',
+        backdropFilter: 'blur(4px)',
     }
 };
 
