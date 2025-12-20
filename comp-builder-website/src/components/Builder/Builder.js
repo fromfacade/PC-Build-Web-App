@@ -4,8 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import PartSlot from './PartSlot';
 import PartSelector from './PartSelector';
 import VisualBuilder from './VisualBuilder';
-import getCompatibleParts from './compatibility.js';
-import validateBuild from './compatibility.js';
+import getCompatibleParts, { validateBuild } from './compatibility.js';
 
 
 const Builder = () => {
@@ -17,7 +16,46 @@ const Builder = () => {
 
     const errors = validateBuild(build);
 
+    const isPartLocked = (type) => {
+        // Define children for each part based on the dependency flow
+        // Flow: CPU/Case -> Motherboard/Cooler -> RAM/GPU/Storage/PSU
+        const partChildren = {
+            cpu: ['motherboard', 'cpuCooler'],
+            case: ['motherboard', 'cpuCooler'],
+            motherboard: ['ram', 'gpu', 'storage', 'psu'],
+            cpuCooler: ['ram', 'gpu', 'storage', 'psu'],
+            ram: [],
+            gpu: [],
+            storage: [],
+            psu: []
+        };
+
+        // If any child is present/filled, do not lock this parent
+        const children = partChildren[type] || [];
+        const hasFilledChild = children.some(childKey => !!build[childKey]);
+        if (hasFilledChild) return false;
+
+        // Level 1: CPU, Case (Always unlocked if no parents to check, but they are top level)
+        if (type === 'cpu' || type === 'case') return false;
+
+        // Level 2: Motherboard, CPU Cooler (Requires Level 1)
+        if (type === 'motherboard' || type === 'cpuCooler') {
+            return !build.cpu || !build.case;
+        }
+
+        // Level 3: PSU, GPU, Storage, RAM (Requires Level 2)
+        if (['psu', 'gpu', 'storage', 'ram'].includes(type)) {
+            return !build.motherboard || !build.cpuCooler;
+        }
+
+        return false;
+    };
+
     const handleAddPart = (type) => {
+        if (isPartLocked(type)) {
+            alert("Please complete previous steps first!"); // Simple feedback, UI will visually show lock
+            return;
+        }
         setSelectorOpen(type);
     };
 
@@ -30,6 +68,9 @@ const Builder = () => {
         setBuild(prev => {
             const newBuild = { ...prev };
             delete newBuild[type];
+            // Recursively remove dependent parts to maintain validity?
+            // For now, let's just remove the item. If strictly enforcing flow, we might need to reset downstream.
+            // But user might just be swapping parts.
             return newBuild;
         });
         setPurchasedParts(prev => {
@@ -78,7 +119,9 @@ const Builder = () => {
                 <VisualBuilder
                     build={build}
                     onPartSelect={handleAddPart}
+                    onPartRemove={handleRemovePart}
                     errors={errors}
+                    isPartLocked={isPartLocked}
                 />
             ) : (
                 <div style={styles.builderGrid}>

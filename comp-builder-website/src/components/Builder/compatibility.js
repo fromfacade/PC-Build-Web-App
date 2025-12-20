@@ -4,42 +4,69 @@ import { PARTS_DATA } from '../../data/parts';
 export default function getCompatibleParts(type, build) {
     const allParts = PARTS_DATA[type] || [];
 
-    return allParts.filter(part => {
+    return allParts.map(part => {
+        let compatible = true;
+        let error = null;
+
         // CPU <-> Motherboard Compatibility
         if (type === 'cpu' && build.motherboard) {
-            if (part.socket !== build.motherboard.socket) return false;
+            if (part.socket !== build.motherboard.socket) {
+                compatible = false;
+                error = `Incompatible Socket (Needs ${build.motherboard.socket})`;
+            }
         }
         if (type === 'motherboard' && build.cpu) {
-            if (part.socket !== build.cpu.socket) return false;
+            if (part.socket !== build.cpu.socket) {
+                compatible = false;
+                error = `Incompatible Socket (Needs ${build.cpu.socket})`;
+            }
         }
 
         // CPU Cooler <-> CPU Compatibility
         if (type === 'cpuCooler' && build.cpu) {
-            if (!part.supportedSockets.includes(build.cpu.socket)) return false;
+            if (!part.supportedSockets.includes(build.cpu.socket)) {
+                compatible = false;
+                error = `Unsupported Socket (Needs ${build.cpu.socket})`;
+            }
         }
         if (type === 'cpu' && build.cpuCooler) {
-            if (!build.cpuCooler.supportedSockets.includes(part.socket)) return false;
+            if (!build.cpuCooler.supportedSockets.includes(part.socket)) {
+                compatible = false;
+                error = `Unsupported Socket (Cooler supports ${build.cpuCooler.supportedSockets.join(', ')})`;
+            }
         }
 
         // Case <-> Motherboard Compatibility
         if (type === 'case' && build.motherboard) {
             // Case supports list of form factors
-            if (!part.supportedMotherboards.includes(build.motherboard.formFactor)) return false;
+            if (!part.supportedMotherboards.includes(build.motherboard.formFactor)) {
+                compatible = false;
+                error = `Incompatible Form Factor (Need ${build.motherboard.formFactor})`;
+            }
         }
         if (type === 'motherboard' && build.case) {
             // Motherboard has one form factor
-            if (!build.case.supportedMotherboards.includes(part.formFactor)) return false;
+            if (!build.case.supportedMotherboards.includes(part.formFactor)) {
+                compatible = false;
+                error = `Case too small (Max: ${build.case.supportedMotherboards.join(', ')})`;
+            }
         }
 
         // RAM <-> Motherboard Compatibility
         if (type === 'ram' && build.motherboard) {
-            if (build.motherboard.memoryType && part.type !== build.motherboard.memoryType) return false;
+            if (build.motherboard.memoryType && part.type !== build.motherboard.memoryType) {
+                compatible = false;
+                error = `Incompatible Memory (Needs ${build.motherboard.memoryType})`;
+            }
         }
         if (type === 'motherboard' && build.ram) {
-            if (part.memoryType && build.ram.type !== part.memoryType) return false;
+            if (part.memoryType && build.ram.type !== part.memoryType) {
+                compatible = false;
+                error = `Incompatible Memory (Stick is ${build.ram.type})`;
+            }
         }
 
-        return true;
+        return { ...part, compatible, error };
     });
 };
 

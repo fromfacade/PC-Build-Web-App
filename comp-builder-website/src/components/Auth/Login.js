@@ -54,7 +54,6 @@ const Login = () => {
                         onClick={() => setIsOpen(false)}
                         style={styles.cancelBtn}
                     >
-                        ×
                     </button>
                 </form>
             )}

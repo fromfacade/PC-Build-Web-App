@@ -143,8 +143,11 @@ export default function PartSelector({
                 key={part.id}
                 style={{
                   ...styles.item,
+                  ...(part.compatible === false ? styles.incompatibleItem : {}),
                   backgroundColor:
-                    hoveredId === part.id ? "var(--color-bg-dark)" : "transparent",
+                    hoveredId === part.id
+                      ? (part.compatible === false ? "rgba(255, 77, 77, 0.2)" : "var(--color-bg-dark)")
+                      : (part.compatible === false ? "rgba(255, 77, 77, 0.1)" : "transparent"),
                 }}
                 onMouseEnter={() => setHoveredId(part.id)}
                 onMouseLeave={() => setHoveredId(null)}
@@ -166,6 +169,11 @@ export default function PartSelector({
                   <div style={styles.itemDetails}>
                     <div style={styles.itemName}>{part.name}</div>
                     <div style={styles.itemPrice}>${part.price}</div>
+                    {part.compatible === false && (
+                      <div style={{ color: '#ff4d4d', fontSize: '0.8rem', marginTop: '4px' }}>
+                        ⚠ {part.error || "Incompatible"}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -265,6 +273,10 @@ const styles = {
     padding: "1rem",
     borderBottom: "1px solid var(--color-border)",
     transition: "background-color 0.2s",
+  },
+  incompatibleItem: {
+    backgroundColor: "rgba(255, 77, 77, 0.1)", // Light red bg
+    borderLeft: "4px solid #ff4d4d",
   },
   itemContent: {
     display: "flex",

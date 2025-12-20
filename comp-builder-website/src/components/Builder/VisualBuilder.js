@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { CATEGORIES } from '../../data/parts';
 import PeripheralSidebar from './PeripheralSidebar';
 
-const VisualBuilder = ({ build, onPartSelect, errors = {} }) => {
+const VisualBuilder = ({ build, onPartSelect, onPartRemove, errors = {}, isPartLocked = () => false }) => {
+    // ... (existing layout logic)
     const [layoutMode, setLayoutMode] = useState('decision'); // 'decision' | 'physical'
 
     const coreParts = ['cpu', 'motherboard', 'ram', 'gpu', 'storage', 'psu', 'case', 'cpuCooler'];
@@ -12,49 +13,54 @@ const VisualBuilder = ({ build, onPartSelect, errors = {} }) => {
             // Previous Motherboard-centric layout
             return {
                 positions: {
-                    pc: { x: 50, y: 50 },
-                    cpu: { x: 50, y: 30 },
+                    cpu: { x: 30, y: 30 },
                     motherboard: { x: 50, y: 50 }, // Center hub
-                    cpuCooler: { x: 30, y: 30 },
+                    cpuCooler: { x: 15, y: 30 },
                     ram: { x: 70, y: 30 },
-                    gpu: { x: 50, y: 80 },
+                    gpu: { x: 30, y: 80 },
                     storage: { x: 80, y: 50 },
                     psu: { x: 20, y: 50 },
-                    case: { x: 50, y: 90 },
+                    case: { x: 70, y: 80 },
                 },
                 connections: [
-                    { from: 'pc', to: 'motherboard', type: 'solid' },
+                    { from: 'case', to: 'motherboard', type: 'solid' },
                     { from: 'motherboard', to: 'cpu', type: 'solid' },
                     { from: 'motherboard', to: 'ram', type: 'solid' },
                     { from: 'motherboard', to: 'gpu', type: 'solid' },
                     { from: 'motherboard', to: 'storage', type: 'solid' },
-                    { from: 'motherboard', to: 'cpuCooler', type: 'dotted' },
-                    { from: 'pc', to: 'psu', type: 'solid' },
-                    { from: 'pc', to: 'case', type: 'solid' },
+                    { from: 'motherboard', to: 'psu', type: 'solid' },
+                    { from: 'cpu', to: 'cpuCooler', type: 'dotted' },
                 ]
             };
         } else {
-            // Decision Flow (CPU Centered)
+            // Decision Flow (User Requested Order)
+            // Level 1: CPU, Case
+            // Level 2: Motherboard, Cooler
+            // Level 3: PSU, GPU, Storage, Memory
             return {
                 positions: {
-                    cpu: { x: 50, y: 15 }, // Start here
-                    motherboard: { x: 50, y: 35 }, // Main Gate
-                    ram: { x: 30, y: 55 },
-                    gpu: { x: 50, y: 60 },
-                    storage: { x: 70, y: 55 },
-                    cpuCooler: { x: 80, y: 15 }, // Linked to CPU
-                    case: { x: 50, y: 85 }, // Linked to Mobo/GPU
-                    psu: { x: 20, y: 85 },
+                    case: { x: 35, y: 20 },
+                    cpu: { x: 65, y: 20 },
+
+                    motherboard: { x: 50, y: 50 },
+                    cpuCooler: { x: 75, y: 50 },
+
+                    psu: { x: 20, y: 80 },
+                    gpu: { x: 40, y: 80 },
+                    storage: { x: 60, y: 80 },
+                    ram: { x: 80, y: 80 },
                 },
                 connections: [
+                    // Level 1 -> Level 2
+                    { from: 'case', to: 'motherboard', type: 'solid' },
                     { from: 'cpu', to: 'motherboard', type: 'solid' },
-                    { from: 'motherboard', to: 'ram', type: 'solid' },
+                    { from: 'cpu', to: 'cpuCooler', type: 'dotted' },
+
+                    // Level 2 -> Level 3
                     { from: 'motherboard', to: 'gpu', type: 'solid' },
                     { from: 'motherboard', to: 'storage', type: 'solid' },
-                    // Secondary / Constraints
-                    { from: 'cpu', to: 'cpuCooler', type: 'dotted' },
-                    { from: 'motherboard', to: 'case', type: 'solid' },
-                    { from: 'gpu', to: 'psu', type: 'dotted' },
+                    { from: 'motherboard', to: 'ram', type: 'solid' },
+                    { from: 'motherboard', to: 'psu', type: 'solid' }, // PSU powers mobo
                 ]
             };
         }
@@ -72,7 +78,7 @@ const VisualBuilder = ({ build, onPartSelect, errors = {} }) => {
                         onChange={(e) => setLayoutMode(e.target.value)}
                         style={styles.select}
                     >
-                        <option value="decision">Decision Flow (CPU)</option>
+                        <option value="decision">Decision Flow</option>
                         <option value="physical">Physical Hub</option>
                     </select>
                 </label>
@@ -105,21 +111,44 @@ const VisualBuilder = ({ build, onPartSelect, errors = {} }) => {
 
                     const part = build[key];
                     const hasError = !!errors[key];
+                    const locked = isPartLocked(key);
 
                     return (
                         <div
                             key={key}
-                            style={{ ...styles.node, left: `${pos.x}%`, top: `${pos.y}%` }}
-                            onClick={() => onPartSelect(key)}
+                            style={{ ...styles.node, left: `${pos.x}%`, top: `${pos.y}%`, opacity: locked ? 0.5 : 1, pointerEvents: locked ? 'none' : 'auto' }}
+                            onClick={() => !locked && onPartSelect(key)}
                         >
                             <div style={{
                                 ...styles.nodeIcon,
                                 ...(part ? styles.nodeActive : {}),
-                                ...(hasError ? styles.nodeError : {})
+                                ...(hasError ? styles.nodeError : {}),
+                                ...(locked ? styles.nodeLocked : {})
                             }}>
-                                {part ? <img src={part.image} alt={part.name} style={styles.partImage} /> : '+'}
+                                {locked ? (
+                                    <span style={{ fontSize: '1.5rem' }}>🔒</span>
+                                ) : (
+                                    part ? <img src={part.image} alt={part.name} style={styles.partImage} /> : '+'
+                                )}
                             </div>
-                            <span style={styles.nodeLabel}>
+
+                            {part && !locked && (
+                                <div
+                                    style={styles.removeBtn}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onPartRemove(key);
+                                    }}
+                                    title="Remove part"
+                                >
+                                    ×
+                                </div>
+                            )}
+
+                            <span style={{
+                                ...styles.nodeLabel,
+                                ...(hasError ? styles.nodeLabelError : {})
+                            }}>
                                 {part ? (part.name.length > 12 ? part.name.substring(0, 12) + '...' : part.name) : CATEGORIES[key]}
                             </span>
                         </div>
@@ -133,6 +162,7 @@ const VisualBuilder = ({ build, onPartSelect, errors = {} }) => {
 };
 
 const styles = {
+    // ... (keep previous styles unchanged until nodeError)
     wrapper: {
         display: 'flex',
         backgroundColor: 'var(--color-bg-card)',
@@ -179,6 +209,7 @@ const styles = {
         gap: '0.5rem',
         cursor: 'pointer',
         zIndex: 10,
+        transition: 'opacity 0.3s ease',
     },
     nodeIcon: {
         width: '50px',
@@ -192,6 +223,7 @@ const styles = {
         transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)', // Bouncy
         fontSize: '1.2rem',
         color: 'var(--color-text-muted)',
+        position: 'relative', // Context for relative children if needed
     },
     nodeActive: {
         borderColor: 'var(--color-primary)',
@@ -202,7 +234,14 @@ const styles = {
     },
     nodeError: {
         borderColor: '#ff4d4d',
-        boxShadow: '0 0 15px rgba(255, 77, 77, 0.4)',
+        borderWidth: '3px',
+        boxShadow: '0 0 20px rgba(255, 77, 77, 0.6)',
+    },
+    nodeLocked: {
+        backgroundColor: '#2a2a2a',
+        borderColor: '#444',
+        cursor: 'not-allowed',
+        boxShadow: 'none',
     },
     partImage: {
         width: '100%',
@@ -218,6 +257,32 @@ const styles = {
         maxWidth: '120px',
         textAlign: 'center',
         backdropFilter: 'blur(4px)',
+    },
+    nodeLabelError: {
+        backgroundColor: '#ff4d4d',
+        color: '#fff',
+        fontWeight: 'bold',
+    },
+    removeBtn: {
+        position: 'absolute',
+        top: '-6px',
+        right: '-6px',
+        width: '24px',
+        height: '24px',
+        backgroundColor: 'transparent',
+        color: '#ff4d4d',
+        borderRadius: '50%', // Keep radius for hover effects if any, or click radius
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        fontSize: '18px',
+        lineHeight: '1',
+        paddingBottom: '2px',
+        fontWeight: '900', // Extra bold
+        cursor: 'pointer',
+        zIndex: 20,
+        textShadow: '0 2px 4px rgba(0,0,0,0.3)', // Text shadow to pop against any bg
+        transition: 'transform 0.2s ease',
     }
 };
 
