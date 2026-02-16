@@ -1,0 +1,36 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Part {
+  id          Int      @id @default(autoincrement())
+  brand       String
+  model       String
+  category    String   // cpu, gpu, mobo, ram, psu, case, storage, cooler
+  specs       Json     // Flexible JSONB for component-specific specs
+  price       Decimal
+  images      Json?    // Array of image URLs
+  vendorLinks Json?    // Array of vendor links
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([brand])
+}
+
+model Build {
+  id            Int      @id @default(autoincrement())
+  name          String
+  components    Json     // Map of category -> partId
+  compatibility Json?    // Stored compatibility report
+  totalPrice    Decimal
+  createdAt     DateTime @default(now())
+}
